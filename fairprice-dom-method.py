@@ -1,14 +1,15 @@
 from playwright.sync_api import sync_playwright
 import pandas as pd
+import re
 
 urls = [
     # "https://www.fairprice.com.sg/product/fairprice-white-bread-enriched-500g-13200672",
-    # "https://www.fairprice.com.sg/product/holland-potato-china-1kg-13057650",
-    # "https://www.fairprice.com.sg/product/buttercup-luxury-spread-250g-366329",
-    # "https://www.fairprice.com.sg/product/pasar-fresh-eggs-10-eggs-550g-451724",
+    "https://www.fairprice.com.sg/product/holland-potato-china-1kg-13057650",
+    "https://www.fairprice.com.sg/product/buttercup-luxury-spread-250g-366329",
+    "https://www.fairprice.com.sg/product/pasar-fresh-eggs-10-eggs-550g-451724",
     "https://www.fairprice.com.sg/product/campbells-soup-mushroom-potage-305g-465098",
     "https://www.fairprice.com.sg/product/myojo-instant-noodles-ramen-char-mee-5s-x-75g-88577",
-    "https://www.fairprice.com.sg/product/myojo-instant-noodles-mee-goreng-original-5s-x-80g-10647588",
+    # "https://www.fairprice.com.sg/product/myojo-instant-noodles-mee-goreng-original-5s-x-80g-10647588",
     # "https://www.fairprice.com.sg/product/indomie-mi-goreng-instant-noodles-special-5-x-85g-13057731"
 ]
 def pick_main_price(prices):
@@ -18,11 +19,89 @@ def pick_main_price(prices):
     # return cleaned[0] if cleaned else None
     return prices[0] if prices else None
 
+def original_price(prices):
+    return prices[1] if len(prices) == 2 else None
+        
 def clean_title(title: str) -> str:
     if not title:
         return None
     return title.split("|")[0].strip()
 
+import re
+
+# def extract_quantity_weight(text):
+#     text = text.lower()
+
+#     # -------------------
+#     # 1. extract weight
+#     # -------------------
+#     weight_match = re.search(r"([\d.]+\s*(?:g|kg))", text)
+#     weight = weight_match.group(1).replace(" ", "") if weight_match else None
+
+#     # -------------------
+#     # 2. extract quantity (case A: "3 x")
+#     # -------------------
+#     qty_match = re.search(r"(\d+)\s*x", text)
+#     quantity = int(qty_match.group(1)) if qty_match else None
+
+#     # -------------------
+#     # 3. extract quantity (case B: "(10 per pack)")
+#     # -------------------
+#     if quantity is None:
+#         pack_match = re.search(r"\((\d+)\s*per\s*pack\)", text)
+#         if pack_match:
+#             quantity = int(pack_match.group(1))
+
+#     # -------------------
+#     # 4. fallback
+#     # -------------------
+#     if quantity is None:
+#         quantity = 1
+
+#     return quantity, weight
+
+def extract_from_url(url, end_type):
+    slug = url.lower()
+
+    # -------------------------
+    # 1. weight (always exists if present)
+    # -------------------------
+    weight_match = re.search(r"(\d+(?:\.\d+)?\s*(?:g|kg))", slug)
+    weight = weight_match.group(1).replace(" ", "") if weight_match else None
+
+    # -------------------------
+    # 2. quantity patterns (multiple formats)
+    # -------------------------
+
+    quantity = None
+
+    # case A: "10-eggs", "3-packs"
+    match = re.search(r"-(\d+)-[a-z]", slug)
+    if match:
+        quantity = int(match.group(1))
+
+    # case B: "5x75g" or "5-x-75g"
+    if quantity is None:
+        match = re.search(r"(\d+)\s*-?\s*x\s*-?\s*\d+\s*(?:g|kg)", slug)
+        if match:
+            quantity = int(match.group(1))
+
+    # case C: "5s-x-75g"
+    if quantity is None:
+        match = re.search(r"(\d+)s?-x-\d+", slug)
+        if match:
+            quantity = int(match.group(1))
+
+    # fallback
+    if quantity is None:
+        quantity = 1
+
+    # -------------------------
+    # 3. product id
+    # -------------------------
+    # product_id = slug.rstrip("/").split("-")[-1]
+
+    return quantity if end_type == 'qty' else weight
 def scrape():
     results = []
     
@@ -43,6 +122,8 @@ def scrape():
             price_elements = page.locator("text=/^\\$\\s*\\d+\\.\\d{2}$/")
             
             promo_locator = page.locator("text=/Till\\s+/i")
+
+            
             promo_validity = None
             if promo_locator.count() > 0:
               promo_validity = promo_locator.first.inner_text().strip()
@@ -58,13 +139,25 @@ def scrape():
             # PRODUCT NAME (simple but reliable fallback)
             title = page.title()
 
+            # # 3. CALL URL FUNCTION HERE 👇
+            # quantity, weight = extract_from_url(url)
+            quantity = extract_from_url(url, "qty")
+            weight = extract_from_url(url, "weight")
+
+            # quantity, weight = extract_quantity_weight(title)
+
             # STORE ROW
             results.append({
                 # "name": title,
                 "product_name": clean_title(title),
-                "main_price": main_price,
-                "all_prices": prices,
+                "quantity": quantity,
+                "weight": weight,
+                "cost_price": main_price,
+                # "all_prices": prices,
+                "original_price": original_price(prices),
                 "promo_validity": promo_validity,
+                # "servings": servings,
+                "cost_per_unit": f"${round((float(main_price.replace("$", "")) / quantity), 2)}"
                 # "url": url
             })
 
