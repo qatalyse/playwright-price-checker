@@ -56,10 +56,10 @@ def scrape():
             # STORE ROW
             results.append({
                 "name": title,
-                "url": url,
                 "main_price": main_price,
                 "all_prices": prices,
-                "promo_validity": promo_validity
+                "promo_validity": promo_validity,
+                # "url": url
             })
 
             # print({
