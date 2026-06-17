@@ -89,14 +89,34 @@ html = df.to_html(index=False, classes="table table-striped")
 
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(f"""
-    <html>
-    <head>
-        <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    </head>
-    <body class="p-3">
-        <h2>FairPrice Tracker</h2>
-        {html}
-    </body>
-    </html>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>FairPrice Tracker</title>
+
+    <link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+
+    <style>
+        body {{
+            background: #f8f9fa;
+        }}
+        h2 {{
+            margin-bottom: 20px;
+        }}
+        .table {{
+            background: white;
+        }}
+    </style>
+</head>
+
+<body class="p-4">
+    <h2>🛒 FairPrice Tracker</h2>
+    <p>Last updated automatically via GitHub Actions</p>
+
+    {html}
+
+</body>
+</html>
     """)
