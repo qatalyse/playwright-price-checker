@@ -18,6 +18,11 @@ def pick_main_price(prices):
     # return cleaned[0] if cleaned else None
     return prices[0] if prices else None
 
+def clean_title(title: str) -> str:
+    if not title:
+        return None
+    return title.split("|")[0].strip()
+
 def scrape():
     results = []
     
@@ -78,7 +83,7 @@ def scrape():
 data = scrape()
 
 df = pd.DataFrame(data)
-
+df["product_name"] = df["product_name"].apply(clean_title)
 # Save Excel file
 # df.to_excel("fairprice_prices.xlsx", index=False)
 
