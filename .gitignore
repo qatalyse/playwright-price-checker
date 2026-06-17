@@ -7,7 +7,7 @@ __pycache__/
 
 # Output files
 *.xlsx
-*.html
+# *.html
 
 # OS
 .DS_Store
