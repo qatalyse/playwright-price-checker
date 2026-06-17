@@ -60,7 +60,8 @@ def scrape():
 
             # STORE ROW
             results.append({
-                "name": title,
+                # "name": title,
+                "product_name": clean_title(title),
                 "main_price": main_price,
                 "all_prices": prices,
                 "promo_validity": promo_validity,
@@ -83,14 +84,13 @@ def scrape():
 data = scrape()
 
 df = pd.DataFrame(data)
-df["product_name"] = df["product_name"].apply(clean_title)
 # Save Excel file
 # df.to_excel("fairprice_prices.xlsx", index=False)
 
 # print(df)
 # print("\nSaved to fairprice_prices.xlsx")
 
-html = df.to_html(index=False, classes="table table-striped")
+html = df.to_html(index=False, classes="table table-striped table-bordered", border=0)
 
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(f"""
@@ -107,11 +107,24 @@ with open("index.html", "w", encoding="utf-8") as f:
         body {{
             background: #f8f9fa;
         }}
+
         h2 {{
             margin-bottom: 20px;
         }}
+
         .table {{
             background: white;
+        }}
+
+        /* 🔥 key fix: left align everything cleanly */
+        table th, table td {{
+            text-align: left !important;
+            vertical-align: middle;
+        }}
+
+        /* optional: make headers slightly stronger */
+        table th {{
+            font-weight: 600;
         }}
     </style>
 </head>
@@ -124,4 +137,4 @@ with open("index.html", "w", encoding="utf-8") as f:
 
 </body>
 </html>
-    """)
+""")

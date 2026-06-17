@@ -12,11 +12,24 @@
         body {
             background: #f8f9fa;
         }
+
         h2 {
             margin-bottom: 20px;
         }
+
         .table {
             background: white;
+        }
+
+        /* 🔥 key fix: left align everything cleanly */
+        table th, table td {
+            text-align: left !important;
+            vertical-align: middle;
+        }
+
+        /* optional: make headers slightly stronger */
+        table th {
+            font-weight: 600;
         }
     </style>
 </head>
@@ -25,10 +38,10 @@
     <h2>🛒 FairPrice Tracker</h2>
     <p>Last updated automatically via GitHub Actions</p>
 
-    <table border="1" class="dataframe table table-striped">
+    <table class="dataframe table table-striped table-bordered">
   <thead>
     <tr style="text-align: right;">
-      <th>name</th>
+      <th>product_name</th>
       <th>main_price</th>
       <th>all_prices</th>
       <th>promo_validity</th>
@@ -36,19 +49,19 @@
   </thead>
   <tbody>
     <tr>
-      <td>Campbell's Condensed Soup - Mushroom Potage | NTUC FairPrice</td>
+      <td>Campbell's Condensed Soup - Mushroom Potage</td>
       <td>$2.63</td>
       <td>[$2.63]</td>
       <td>NaN</td>
     </tr>
     <tr>
-      <td>Myojo Instant Noodles - Ramen Char Mee | NTUC FairPrice</td>
+      <td>Myojo Instant Noodles - Ramen Char Mee</td>
       <td>$2.45</td>
       <td>[$2.45, $2.67]</td>
       <td>Till 1st Jul 2026</td>
     </tr>
     <tr>
-      <td>Myojo Instant Noodles - Mee Goreng Original | NTUC FairPrice</td>
+      <td>Myojo Instant Noodles - Mee Goreng Original</td>
       <td>$2.67</td>
       <td>[$2.67]</td>
       <td>NaN</td>
@@ -58,4 +71,3 @@
 
 </body>
 </html>
-    
