@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual env (if you ever use it)
+.venv/
+
+# Output files
+*.xlsx
+*.html
+
+# OS
+.DS_Store
