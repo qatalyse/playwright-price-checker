@@ -3,14 +3,17 @@ import pandas as pd
 import re
 
 urls = [
-    # "https://www.fairprice.com.sg/product/fairprice-white-bread-enriched-500g-13200672",
+    "https://www.fairprice.com.sg/product/fairprice-white-bread-enriched-500g-13200672",
     "https://www.fairprice.com.sg/product/holland-potato-china-1kg-13057650",
-    "https://www.fairprice.com.sg/product/buttercup-luxury-spread-250g-366329",
+    "https://www.fairprice.com.sg/product/fairprice-butter-salted-250g-13218509",
+    # "https://www.fairprice.com.sg/product/fairprice-uht-milk-full-cream-1lt-11898581",
+    "https://www.fairprice.com.sg/product/farm-fresh-milk-lactose-free-1l-13287428",
+    # "https://www.fairprice.com.sg/product/buttercup-luxury-spread-250g-366329",
     "https://www.fairprice.com.sg/product/pasar-fresh-eggs-10-eggs-550g-451724",
     "https://www.fairprice.com.sg/product/campbells-soup-mushroom-potage-305g-465098",
     "https://www.fairprice.com.sg/product/myojo-instant-noodles-ramen-char-mee-5s-x-75g-88577",
-    # "https://www.fairprice.com.sg/product/myojo-instant-noodles-mee-goreng-original-5s-x-80g-10647588",
-    # "https://www.fairprice.com.sg/product/indomie-mi-goreng-instant-noodles-special-5-x-85g-13057731"
+    "https://www.fairprice.com.sg/product/myojo-instant-noodles-mee-goreng-original-5s-x-80g-10647588",
+    "https://www.fairprice.com.sg/product/indomie-mi-goreng-instant-noodles-special-5-x-85g-13057731"
 ]
 def pick_main_price(prices):
     # remove unit pricing like $0.41/100g (future improvement)
@@ -20,7 +23,7 @@ def pick_main_price(prices):
     return prices[0] if prices else None
 
 def original_price(prices):
-    return prices[1] if len(prices) == 2 else None
+    return prices[1] if len(prices) == 2 else ''
         
 def clean_title(title: str) -> str:
     if not title:
@@ -60,13 +63,13 @@ import re
 
 #     return quantity, weight
 
-def extract_from_url(url, end_type):
+def extract_from_url(url,title):
     slug = url.lower()
 
     # -------------------------
     # 1. weight (always exists if present)
     # -------------------------
-    weight_match = re.search(r"(\d+(?:\.\d+)?\s*(?:g|kg))", slug)
+    weight_match = re.search(r"(\d+(?:\.\d+)?\s*(?:g|kg|l))", slug)
     weight = weight_match.group(1).replace(" ", "") if weight_match else None
 
     # -------------------------
@@ -96,12 +99,26 @@ def extract_from_url(url, end_type):
     if quantity is None:
         quantity = 1
 
+    servings = 1
+    if quantity == 1 and 'Potato' in title:
+        servings = float(weight.replace("kg","")) / 0.2
+    if quantity == 1 and 'Butter' in title:
+        servings = int(weight.replace("g","")) / 10
+    if quantity == 1 and 'Campbell' in title:
+        servings = 3
+    if quantity == 1 and 'Bread' in title:
+        servings = 7
+    if quantity == 1 and 'Milk' in title:
+        servings = 10
+    
+
     # -------------------------
     # 3. product id
     # -------------------------
     # product_id = slug.rstrip("/").split("-")[-1]
 
-    return quantity if end_type == 'qty' else weight
+    # return quantity if end_type == 'qty' else weight
+    return quantity, weight, servings
 def scrape():
     results = []
     
@@ -124,7 +141,7 @@ def scrape():
             promo_locator = page.locator("text=/Till\\s+/i")
 
             
-            promo_validity = None
+            promo_validity = ''
             if promo_locator.count() > 0:
               promo_validity = promo_locator.first.inner_text().strip()
     
@@ -141,8 +158,7 @@ def scrape():
 
             # # 3. CALL URL FUNCTION HERE 👇
             # quantity, weight = extract_from_url(url)
-            quantity = extract_from_url(url, "qty")
-            weight = extract_from_url(url, "weight")
+            quantity, weight, servings = extract_from_url(url, title)
 
             # quantity, weight = extract_quantity_weight(title)
 
@@ -152,25 +168,45 @@ def scrape():
                 "product_name": clean_title(title),
                 "quantity": quantity,
                 "weight": weight,
-                "cost_price": main_price,
+                "current_price": main_price,
                 # "all_prices": prices,
                 "original_price": original_price(prices),
                 "promo_validity": promo_validity,
-                # "servings": servings,
-                "cost_per_unit": f"${round((float(main_price.replace("$", "")) / quantity), 2)}"
+                "servings": round(servings if servings > 1 else quantity),
+                "cost_per_unit": f"${round((float(main_price.replace("$", "")) / quantity / servings), 2)}"
                 # "url": url
-            })
-
-            # print({
-            #     "url": url,
-            #     "prices_found": prices,
-            #     "main_price": main_price,
-            #     "promo_validity": promo_validity
-            # })
-            
+            })           
 
         browser.close()
-    
+        
+        df = pd.DataFrame(results)
+
+        df["current_price_num"] = df["current_price"].str.replace("$", "").astype(float)
+        df["cost_per_unit_num"] = df["cost_per_unit"].str.replace("$", "").astype(float)
+
+        total_cost = df["current_price_num"].sum()
+        total_cost_per_unit = df["cost_per_unit_num"].sum()
+
+        # print({
+        #     "url": url,
+        #     "prices_found": prices,
+        #     "main_price": main_price,
+        #     "promo_validity": promo_validity
+        # })
+        total_row = {
+            "product_name": "TOTAL",
+            "quantity": "",
+            "weight": "",
+            "current_price": f"${round(total_cost, 2)}",
+            "original_price": "",
+            "promo_validity": "",
+            "servings":"",
+            "cost_per_unit": f"${round(total_cost_per_unit, 2)}"
+        }
+
+        # df = pd.concat([df, pd.DataFrame([total_row])], ignore_index=True)
+        results.append(total_row)
+
     return results
 
 # RUN + EXPORT
